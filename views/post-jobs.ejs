@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post a New Job</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <% include ../partials/navbar-employer %>
+
+    <div class="container form-box">
+        <h2>Post a New Job</h2>
+
+        <form action="/employer/post-job" method="POST">
+
+            <label>Job Title</label>
+            <input type="text" name="title" required>
+
+            <label>Job Description</label>
+            <textarea name="description" rows="5" required></textarea>
+
+            <label>Location</label>
+            <input type="text" name="location" required>
+
+            <label>Salary (optional)</label>
+            <input type="text" name="salary">
+
+            <label>Skills Required (comma separated)</label>
+            <input type="text" name="skills" placeholder="JavaScript, HTML, CSS" required>
+
+            <button type="submit" class="btn">Post Job</button>
+        </form>
+    </div>
+
+</body>
+</html>
