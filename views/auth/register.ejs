@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <div class="container form-box">
+        <h2>Create Account</h2>
+
+        <% if (message) { %>
+            <p class="error"><%= message %></p>
+        <% } %>
+
+        <form action="/register" method="POST">
+
+            <label>Full Name / Company Name</label>
+            <input type="text" name="name" required>
+
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <label>Register As</label>
+            <select name="role" required>
+                <option value="candidate">Candidate</option>
+                <option value="employer">Employer</option>
+            </select>
+
+            <button type="submit" class="btn">Register</button>
+        </form>
+
+        <p>
+            Already have an account?
+            <a href="/login">Login</a>
+        </p>
+    </div>
+
+</body>
+</html>
