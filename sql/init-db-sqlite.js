@@ -123,4 +123,5 @@ CREATE TABLE IF NOT EXISTS salary_data (
 `).run();
 
 console.log("✅ Database ready.");
+
 export default db;
