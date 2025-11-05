@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <% include ../partials/navbar-candidate %>
+
+    <div class="container form-box">
+        <h2>My Profile</h2>
+
+        <form action="/candidate/profile" method="POST" enctype="multipart/form-data">
+
+            <label>Full Name</label>
+            <input type="text" name="name" value="<%= candidate.name %>" required>
+
+            <label>Email</label>
+            <input type="email" name="email" value="<%= candidate.email %>" required>
+
+            <label>Skills (comma separated)</label>
+            <input type="text" name="skills" value="<%= candidate.skills %>" placeholder="JavaScript, HTML, CSS">
+
+            <label>Upload Resume (PDF, Max 3 MB)</label>
+            <input type="file" name="resume" accept=".pdf">
+
+            <% if (candidate.resumeFile) { %>
+                <p>Current resume: 
+                    <a href="/uploads/resumes/<%= candidate.resumeFile %>" download>
+                        Download
+                    </a>
+                </p>
+            <% } %>
+
+            <button type="submit" class="btn">Save Profile</button>
+        </form>
+    </div>
+
+</body>
+</html>
