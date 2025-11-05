@@ -28,4 +28,5 @@ export function redirectIfLoggedIn(req, res, next) {
     if (req.session.user.role === "candidate") return res.redirect("/candidate/dashboard");
   }
   next();
+
 }
