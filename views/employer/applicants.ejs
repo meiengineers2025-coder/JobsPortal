@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicants</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <% include ../partials/navbar-employer %>
+
+    <div class="container">
+        <h2>Applicants for: <%= job.title %></h2>
+
+        <% if (applicants.length === 0) { %>
+            <p>No applicants have applied yet.</p>
+        <% } else { %>
+
+            <table class="job-table">
+                <thead>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Email</th>
+                        <th>Skills</th>
+                        <th>Resume</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <% applicants.forEach(app => { %>
+                        <tr>
+                            <td><%= app.name %></td>
+                            <td><%= app.email %></td>
+                            <td><%= app.skills %></td>
+                            <td>
+                                <a href="/uploads/resumes/<%= app.resumeFile %>" download class="btn-small">
+                                    Download Resume
+                                </a>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+
+        <% } %>
+
+    </div>
+
+</body>
+</html>
