@@ -1,79 +1,108 @@
-// routes/candidates.js
-
-import express from "express";
-import db from "../src/config/db.js";
-import { ensureCandidate, ensureLoggedIn } from "../src/utils/access.js";
-
+const express = require("express");
 const router = express.Router();
+const db = require("../config/db");
+const path = require("path");
+const fs = require("fs");
 
-/**
- * CANDIDATE DASHBOARD
- */
-router.get("/candidate/dashboard", ensureCandidate, (req, res) => {
-  const candidate = db
-    .prepare(`SELECT * FROM candidate_profiles WHERE user_id = ?`)
-    .get(req.session.user.id);
+// ------------------------------------------
+// MIDDLEWARE — CHECK IF CANDIDATE IS LOGGED IN
+// ------------------------------------------
+function isCandidate(req, res, next) {
+  if (!req.session.user || req.session.user.role !== "candidate") {
+    return res.redirect("/login");
+  }
+  next();
+}
 
-  const applications = db
-    .prepare(
-      `SELECT jobs.title, jobs.salary_range, applications.status
-       FROM applications
-       JOIN jobs ON jobs.id = applications.job_id
-       WHERE applications.candidate_id = ?`
-    )
-    .all(req.session.user.id);
+// ------------------------------------------
+// CANDIDATE DASHBOARD
+// ------------------------------------------
+router.get("/dashboard", isCandidate, (req, res) => {
+  const userId = req.session.user.id;
 
-  res.render("candidate_dashboard", {
-    user: req.session.user,
-    candidate,
-    applications,
+  db.query("SELECT * FROM users WHERE id = ?", [userId], (err, result) => {
+    if (err) throw err;
+    res.render("candidate/dashboard", { candidate: result[0] });
   });
 });
 
-/**
- * SAVE CANDIDATE PROFILE
- */
-router.post("/candidate/profile", ensureCandidate, (req, res) => {
-  const { education, experience_years, skills, comments } = req.body;
+// ------------------------------------------
+// UPDATE CANDIDATE PROFILE (Resume Upload)
+// ------------------------------------------
+router.get("/profile", isCandidate, (req, res) => {
+  const userId = req.session.user.id;
 
-  db.prepare(
-    `INSERT INTO candidate_profiles (user_id, education, experience_years, skills, comments)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET
-     education = excluded.education,
-     experience_years = excluded.experience_years,
-     skills = excluded.skills,
-     comments = excluded.comments`
-  ).run(req.session.user.id, education, experience_years, skills, comments);
-
-  res.redirect("/candidate/dashboard");
-});
-
-/**
- * APPLY TO A JOB
- */
-router.get("/apply/:job_id", ensureCandidate, (req, res) => {
-  db.prepare(
-    `INSERT INTO applications (job_id, candidate_id) VALUES (?, ?)`
-  ).run(req.params.job_id, req.session.user.id);
-
-  res.redirect("/candidate/dashboard");
-});
-
-/**
- * JOB MATCH SWIPE PAGE (Tinder UI)
- */
-router.get("/candidate/swipe", ensureCandidate, (req, res) => {
-  const jobs = db
-    .prepare(
-      `SELECT * FROM jobs ORDER BY created_at DESC LIMIT 10`
-    )
-    .all();
-
-  res.render("swipe", {
-    user: req.session.user,
-    jobs,
+  db.query("SELECT * FROM users WHERE id = ?", [userId], (err, result) => {
+    if (err) throw err;
+    res.render("candidate/profile", { candidate: result[0] });
   });
 });
 
-export default router;
+router.post("/profile", isCandidate, (req, res) => {
+  const userId = req.session.user.id;
+  const { name, email, skills } = req.body;
+
+  // Resume upload
+  let resumeFile = null;
+
+  if (req.files && req.files.resume) {
+    resumeFile = Date.now() + "-" + req.files.resume.name;
+    const uploadPath = path.join("uploads/resumes", resumeFile);
+
+    req.files.resume.mv(uploadPath, (err) => {
+      if (err) throw err;
+    });
+  }
+
+  const updateQuery = resumeFile
+    ? "UPDATE users SET name = ?, email = ?, skills = ?, resumeFile = ? WHERE id = ?"
+    : "UPDATE users SET name = ?, email = ?, skills = ? WHERE id = ?";
+
+  const params = resumeFile
+    ? [name, email, skills, resumeFile, userId]
+    : [name, email, skills, userId];
+
+  db.query(updateQuery, params, () => {
+    res.redirect("/candidate/dashboard");
+  });
+});
+
+// ------------------------------------------
+// APPLY TO A JOB
+// ------------------------------------------
+router.post("/apply/:jobId", isCandidate, (req, res) => {
+  const candidateId = req.session.user.id;
+  const jobId = req.params.jobId;
+
+  db.query(
+    "INSERT INTO applications (candidateId, jobId, status, appliedOn) VALUES (?, ?, 'applied', NOW())",
+    [candidateId, jobId],
+    (err) => {
+      if (err) {
+        console.log(err);
+      }
+      res.redirect("/candidate/applications");
+    }
+  );
+});
+
+// ------------------------------------------
+// VIEW APPLICATIONS
+// ------------------------------------------
+router.get("/applications", isCandidate, (req, res) => {
+  const userId = req.session.user.id;
+
+  db.query(
+    `SELECT applications.*, jobs.title AS jobTitle, jobs.companyName
+     FROM applications 
+     JOIN jobs ON applications.jobId = jobs.id
+     WHERE applications.candidateId = ?`,
+    [userId],
+    (err, result) => {
+      if (err) throw err;
+      res.render("candidate/applications", { applications: result });
+    }
+  );
+});
+
+module.exports = router;
