@@ -74,4 +74,5 @@ router.get("/employer/delete/:job_id", ensureEmployer, (req, res) => {
   res.redirect("/employer/dashboard");
 });
 
+
 export default router;
