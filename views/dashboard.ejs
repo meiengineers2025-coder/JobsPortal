@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employer Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <% include ../partials/navbar-employer %>
+
+    <div class="container dashboard">
+        <h2>Welcome, <%= employer.companyName %></h2>
+
+        <div class="cards">
+            <a href="/employer/post-job" class="card">
+                <h3>Post a Job</h3>
+                <p>Create and publish new job openings.</p>
+            </a>
+
+            <a href="/employer/jobs" class="card">
+                <h3>Manage Jobs Posted</h3>
+                <p>View, edit, or delete job listings.</p>
+            </a>
+
+            <a href="/employer/applicants" class="card">
+                <h3>View Applicants</h3>
+                <p>See resumes and candidate applications.</p>
+            </a>
+
+            <a href="/payment" class="card premium">
+                <h3>Upgrade (₹ / PayPal)</h3>
+                <p>Unlock premium employer features.</p>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>
