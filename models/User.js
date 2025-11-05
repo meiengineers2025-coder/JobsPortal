@@ -13,4 +13,5 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `;
 
+
 module.exports = User;
