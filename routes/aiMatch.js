@@ -104,4 +104,5 @@ export async function matchScore({ candidate, job }) {
       : 0;
 
   return Math.max(0, Math.min(100, base + expScore + eduScore));
+
 }
