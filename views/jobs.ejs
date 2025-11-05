@@ -3,28 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Posted Jobs</title>
+    <title>Browse Jobs</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-    <% include ../partials/navbar-employer %>
+    <% if (candidate) { %>
+        <% include ./partials/navbar-candidate %>
+    <% } else { %>
+        <% include ./partials/navbar-employer %>
+    <% } %>
 
     <div class="container">
-        <h2>Jobs You Posted</h2>
+        <h2>Available Jobs</h2>
 
         <% if (jobs.length === 0) { %>
-            <p>No jobs posted yet.</p>
+            <p>No jobs available right now.</p>
         <% } else { %>
 
             <table class="job-table">
                 <thead>
                     <tr>
                         <th>Title</th>
+                        <th>Company</th>
                         <th>Location</th>
                         <th>Salary</th>
-                        <th>Applicants</th>
-                        <th>Actions</th>
+                        <th>Skills</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
 
@@ -32,19 +37,18 @@
                     <% jobs.forEach(job => { %>
                         <tr>
                             <td><%= job.title %></td>
+                            <td><%= job.companyName %></td>
                             <td><%= job.location %></td>
                             <td><%= job.salary %></td>
+                            <td><%= job.skills %></td>
                             <td>
-                                <a href="/employer/applicants/<%= job.id %>" class="btn-small">
-                                    View Applicants
-                                </a>
-                            </td>
-                            <td>
-                                <a href="/employer/edit-job/<%= job.id %>" class="btn-small">Edit</a>
-                                
-                                <form action="/employer/delete-job/<%= job.id %>" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn-small danger">Delete</button>
+                                <% if (candidate) { %>
+                                <form action="/apply/<%= job.id %>" method="POST">
+                                    <button type="submit" class="btn-small">Apply</button>
                                 </form>
+                                <% } else { %>
+                                    <span>Login as Candidate to Apply</span>
+                                <% } %>
                             </td>
                         </tr>
                     <% }) %>
