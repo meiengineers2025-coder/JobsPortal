@@ -21,4 +21,5 @@ db.pragma("foreign_keys = ON");
 
 console.log("✅ DB Connected at:", dbPath);
 
+
 export default db;
