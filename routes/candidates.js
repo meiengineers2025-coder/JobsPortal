@@ -1,108 +1,60 @@
+// ──────────────────────────────────────────────
+// ✅ Candidate Routes — Candidate Dashboard, Resume Upload, Jobs List
+// routes/Candidates.js
+// ──────────────────────────────────────────────
+
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db");
-const path = require("path");
-const fs = require("fs");
+const db = require("../utils/db");
 
-// ------------------------------------------
-// MIDDLEWARE — CHECK IF CANDIDATE IS LOGGED IN
-// ------------------------------------------
-function isCandidate(req, res, next) {
-  if (!req.session.user || req.session.user.role !== "candidate") {
+// ✅ Middleware to protect candidate routes
+function requireCandidate(req, res, next) {
+  if (!req.session.user || req.session.user.accountType !== "candidate") {
     return res.redirect("/login");
   }
   next();
 }
 
-// ------------------------------------------
-// CANDIDATE DASHBOARD
-// ------------------------------------------
-router.get("/dashboard", isCandidate, (req, res) => {
-  const userId = req.session.user.id;
+// ✅ Candidate Dashboard
+router.get("/dashboard", requireCandidate, (req, res) => {
+  const jobs = db.prepare("SELECT * FROM jobs ORDER BY createdAt DESC").all();
 
-  db.query("SELECT * FROM users WHERE id = ?", [userId], (err, result) => {
-    if (err) throw err;
-    res.render("candidate/dashboard", { candidate: result[0] });
+  res.render("candidate/dashboard", {
+    user: req.session.user,
+    jobs,
   });
 });
 
-// ------------------------------------------
-// UPDATE CANDIDATE PROFILE (Resume Upload)
-// ------------------------------------------
-router.get("/profile", isCandidate, (req, res) => {
+// ✅ Apply to a job (simple application record)
+router.post("/apply/:jobId", requireCandidate, (req, res) => {
+  const jobId = req.params.jobId;
   const userId = req.session.user.id;
 
-  db.query("SELECT * FROM users WHERE id = ?", [userId], (err, result) => {
-    if (err) throw err;
-    res.render("candidate/profile", { candidate: result[0] });
-  });
+  db.prepare(
+    "INSERT INTO applications (candidateId, jobId, status) VALUES (?, ?, ?)"
+  ).run(userId, jobId, "Applied");
+
+  res.redirect("/candidate/dashboard");
 });
 
-router.post("/profile", isCandidate, (req, res) => {
-  const userId = req.session.user.id;
-  const { name, email, skills } = req.body;
+// ✅ Upload Resume
+router.post("/upload-resume", requireCandidate, (req, res) => {
+  const file = req.files?.resume;
 
-  // Resume upload
-  let resumeFile = null;
+  if (!file) return res.send("❌ No resume uploaded");
 
-  if (req.files && req.files.resume) {
-    resumeFile = Date.now() + "-" + req.files.resume.name;
-    const uploadPath = path.join("uploads/resumes", resumeFile);
+  const filename = `resume-${Date.now()}-${file.name}`;
+  const uploadPath = `public/resumes/${filename}`;
 
-    req.files.resume.mv(uploadPath, (err) => {
-      if (err) throw err;
-    });
-  }
+  file.mv(uploadPath, (err) => {
+    if (err) return res.send("❌ Resume upload failed.");
 
-  const updateQuery = resumeFile
-    ? "UPDATE users SET name = ?, email = ?, skills = ?, resumeFile = ? WHERE id = ?"
-    : "UPDATE users SET name = ?, email = ?, skills = ? WHERE id = ?";
+    db.prepare(
+      "UPDATE users SET resume = ? WHERE id = ?"
+    ).run(filename, req.session.user.id);
 
-  const params = resumeFile
-    ? [name, email, skills, resumeFile, userId]
-    : [name, email, skills, userId];
-
-  db.query(updateQuery, params, () => {
     res.redirect("/candidate/dashboard");
   });
-});
-
-// ------------------------------------------
-// APPLY TO A JOB
-// ------------------------------------------
-router.post("/apply/:jobId", isCandidate, (req, res) => {
-  const candidateId = req.session.user.id;
-  const jobId = req.params.jobId;
-
-  db.query(
-    "INSERT INTO applications (candidateId, jobId, status, appliedOn) VALUES (?, ?, 'applied', NOW())",
-    [candidateId, jobId],
-    (err) => {
-      if (err) {
-        console.log(err);
-      }
-      res.redirect("/candidate/applications");
-    }
-  );
-});
-
-// ------------------------------------------
-// VIEW APPLICATIONS
-// ------------------------------------------
-router.get("/applications", isCandidate, (req, res) => {
-  const userId = req.session.user.id;
-
-  db.query(
-    `SELECT applications.*, jobs.title AS jobTitle, jobs.companyName
-     FROM applications 
-     JOIN jobs ON applications.jobId = jobs.id
-     WHERE applications.candidateId = ?`,
-    [userId],
-    (err, result) => {
-      if (err) throw err;
-      res.render("candidate/applications", { applications: result });
-    }
-  );
 });
 
 module.exports = router;
