@@ -19,4 +19,5 @@ document.addEventListener("DOMContentLoaded", () => {
             messageBox.innerText = msg;
         }
     }
+
 });
