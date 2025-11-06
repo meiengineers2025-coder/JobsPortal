@@ -9,7 +9,7 @@ const fileUpload = require("express-fileupload");
 const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config(); // Load .env credentials (DB + PayPal or Razorpay keys)
+dotenv.config(); // Load environment variables
 
 const app = express();
 
@@ -21,7 +21,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(fileUpload());
 
-// Session for login system
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "super-secret",
@@ -30,17 +29,15 @@ app.use(
   })
 );
 
-// Set EJS as templating engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 // ──────────────────────────────────────────────
-// ✅ ROUTES
+// ✅ ROUTES (CASE SENSITIVE — uses your real filenames)
 // ──────────────────────────────────────────────
-// IMPORTANT: make sure these files exist under /routes/
-app.use("/", require("./routes/auth"));          // login/register
-app.use("/candidate", require("./routes/candidate"));
-app.use("/employer", require("./routes/employer"));
+app.use("/", require("./routes/auth"));                // Login/Register
+app.use("/candidate", require("./routes/Candidates")); // <-- MATCHES Candidates.js
+app.use("/employer", require("./routes/Employers"));   // <-- MATCHES Employers.js
 
 // ──────────────────────────────────────────────
 // ✅ DEFAULT TEST ROUTE
