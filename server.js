@@ -9,7 +9,7 @@ const fileUpload = require("express-fileupload");
 const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config(); // Load environment variables
 
 const app = express();
 
@@ -33,17 +33,15 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 // ──────────────────────────────────────────────
-// ✅ ROUTES (changed to lowercase to match GitHub file names)
+// ✅ ROUTES (lowercase to match filenames)
 // ──────────────────────────────────────────────
 app.use("/", require("./routes/auth"));
-app.use("/candidate", require("./routes/candidates")); // <-- lowercase fixed
-app.use("/employer", require("./routes/employers"));   // <-- lowercase fixed
+app.use("/candidate", require("./routes/candidates"));
+app.use("/employer", require("./routes/employers"));
 
-// ──────────────────────────────────────────────
-// ✅ DEFAULT TEST ROUTE
-// ──────────────────────────────────────────────
-app.get("/health", (req, res) => {
-  res.send("✅ Server running successfully on Render.");
+// ✅ Redirect root (/) → /login
+app.get("/", (req, res) => {
+  res.redirect("/login");
 });
 
 // ──────────────────────────────────────────────
