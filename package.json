@@ -1,26 +1,19 @@
 {
   "name": "job-portal",
-  "version": "3.0.0",
+  "version": "1.0.0",
+  "description": "Job portal project",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.3",
-    "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^9.6.0",
-    "dayjs": "^1.11.13",
-    "dotenv": "^16.4.5",
-    "ejs": "^3.1.10",
-    "express": "^4.21.1",
-    "express-session": "^1.18.0",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.15",
-    "node-fetch": "^3.3.2",
-    "openai": "^4.68.4",
-    "pdf-parse": "^1.1.1",
-    "pdfkit": "^0.15.0",
-    "razorpay": "^2.9.4",
-    "express-fileupload": "^1.4.0"
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "connect-sqlite3": "^0.9.0",
+    "sqlite3": "^5.1.6",
+    "ejs": "^3.1.8",
+    "body-parser": "^1.20.2",
+    "bcrypt": "^5.1.0"
   }
 }

@@ -1,67 +1,115 @@
-// server.js
-// MAIN BACKEND ENTRY POINT for "Best Job Portal in the World"
-
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const SQLiteStore = require("connect-sqlite3")(session);
 const bodyParser = require("body-parser");
+const sqlite3 = require("sqlite3").verbose();
+const bcrypt = require("bcrypt");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* -------------------- MIDDLEWARE -------------------- */
+// ---------------------
+// DATABASE (SQLite)
+// ---------------------
+const db = new sqlite3.Database("./sql/database.sqlite", (err) => {
+    if (err) return console.error(err);
+    console.log("✅ SQLite Database Connected");
+});
 
-// EJS template engine
+// Create tables if not exist
+db.run(
+    `CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password TEXT
+    )`
+);
+
+// ---------------------
+// MIDDLEWARE
+// ---------------------
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Static assets
 app.use(express.static(path.join(__dirname, "public")));
-
-// Forms (POST) body parsing
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
 
-// Session store (SQLite)
 app.use(
-  session({
-    store: new SQLiteStore({
-      db: "sessions.db",
-      dir: "./" // Render allows writing to project root at runtime
-    }),
-    secret: process.env.SESSION_SECRET || "superSecretKey",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
-    }
-  })
+    session({
+        store: new SQLiteStore({ db: "sessions.sqlite", dir: "./sql" }),
+        secret: "superSecretKeyForSessions",
+        resave: false,
+        saveUninitialized: false,
+        cookie: { maxAge: 24 * 60 * 60 * 1000 }, // 1 day
+    })
 );
 
-/* -------------------- ROUTES -------------------- */
+// Expose session to views
+app.use((req, res, next) => {
+    res.locals.user = req.session.user;
+    res.locals.message = req.session.message;
+    delete req.session.message;
+    next();
+});
 
-app.use("/", require("./routes/public"));            // homepage, login, signup views
-app.use("/auth", require("./routes/auth"));          // POST login/signup
-app.use("/employer", require("./routes/employers")); // employer dashboard + post jobs
-app.use("/candidate", require("./routes/candidates")); // candidate dashboard + profile edit
-app.use("/payments", require("./routes/payments"));  // PayPal/Razorpay + invoice email
-app.use("/uploads", require("./routes/uploads"));    // Resume/video uploads
-app.use("/apps", require("./routes/applications"));  // job applications
-app.use("/referrals", require("./routes/referrals")); // referral rewards
-app.use("/whatsapp", require("./routes/whatsapp")); // WhatsApp job alerts
-app.use("/radar", require("./routes/radar"));       // live hiring radar SSE
-app.use("/ai", require("./routes/ai"));             // AI JD/Cover letter generator
-app.use("/ats", require("./routes/ats"));           // ATS kanban pipeline
-app.use("/leaderboard", require("./routes/leaderboard")); // leaderboard
-app.use("/plans", require("./routes/plans"));       // pricing / monetization
+// ---------------------
+// ROUTES
+// ---------------------
 
-// 404 fallback
-app.use((req, res) => res.status(404).render("404"));
+// Default route → login page
+app.get("/", (req, res) => {
+    res.redirect("/login");
+});
 
-/* -------------------- SERVER START -------------------- */
+// Login page
+app.get("/login", (req, res) => {
+    res.render("login");
+});
 
+// Handle login form
+app.post("/login", (req, res) => {
+    const { email, password } = req.body;
+
+    db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
+        if (err) console.log(err);
+
+        if (!user) {
+            req.session.message = "Invalid email or password";
+            return res.redirect("/login");
+        }
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            req.session.message = "Invalid email or password";
+            return res.redirect("/login");
+        }
+
+        req.session.user = { id: user.id, email: user.email };
+        res.redirect("/dashboard");
+    });
+});
+
+// Dashboard (protected)
+app.get("/dashboard", (req, res) => {
+    if (!req.session.user) {
+        req.session.message = "Please login first";
+        return res.redirect("/login");
+    }
+    res.render("dashboard");
+});
+
+// Logout
+app.get("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/login");
+    });
+});
+
+// ---------------------
+// START SERVER
+// ---------------------
 app.listen(PORT, () => {
-  console.log(`🚀 Job Portal running on: http://localhost:${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });
