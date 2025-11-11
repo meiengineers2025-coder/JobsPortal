@@ -3,7 +3,6 @@ const express = require("express");
 const path = require("path");
 const session = require("express-session");
 const SQLiteStore = require("connect-sqlite3")(session);
-const bodyParser = require("body-parser");
 const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcrypt");
 
@@ -18,7 +17,6 @@ const db = new sqlite3.Database("./sql/database.sqlite", (err) => {
     console.log("✅ SQLite Database Connected");
 });
 
-// Create tables if not exist
 db.run(
     `CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,13 +31,17 @@ db.run(
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
+// ✅ Static files (CSS, JS, images)
 app.use(express.static(path.join(__dirname, "public")));
-app.use(bodyParser.urlencoded({ extended: true }));
 
+// ✅ Body parser
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ Sessions (stored in SQLite)
 app.use(
     session({
         store: new SQLiteStore({ db: "sessions.sqlite", dir: "./sql" }),
-        secret: "superSecretKeyForSessions",
+        secret: process.env.SESSION_SECRET || "superSecretKey",
         resave: false,
         saveUninitialized: false,
         cookie: { maxAge: 24 * 60 * 60 * 1000 }, // 1 day
@@ -57,31 +59,19 @@ app.use((req, res, next) => {
 // ---------------------
 // ROUTES
 // ---------------------
+app.get("/", (req, res) => res.redirect("/login"));
 
-// Default route → login page
-app.get("/", (req, res) => {
-    res.redirect("/login");
-});
-
-// Login page
 app.get("/login", (req, res) => {
     res.render("login");
 });
 
-// Handle login form
 app.post("/login", (req, res) => {
     const { email, password } = req.body;
 
     db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
         if (err) console.log(err);
 
-        if (!user) {
-            req.session.message = "Invalid email or password";
-            return res.redirect("/login");
-        }
-
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) {
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             req.session.message = "Invalid email or password";
             return res.redirect("/login");
         }
@@ -91,7 +81,6 @@ app.post("/login", (req, res) => {
     });
 });
 
-// Dashboard (protected)
 app.get("/dashboard", (req, res) => {
     if (!req.session.user) {
         req.session.message = "Please login first";
@@ -100,11 +89,8 @@ app.get("/dashboard", (req, res) => {
     res.render("dashboard");
 });
 
-// Logout
 app.get("/logout", (req, res) => {
-    req.session.destroy(() => {
-        res.redirect("/login");
-    });
+    req.session.destroy(() => res.redirect("/login"));
 });
 
 // ---------------------
