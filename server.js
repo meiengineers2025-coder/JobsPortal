@@ -17,6 +17,7 @@ const db = new sqlite3.Database("./sql/database.sqlite", (err) => {
     console.log("✅ SQLite Database Connected");
 });
 
+// Create table if not exists
 db.run(
     `CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,15 +30,16 @@ db.run(
 // MIDDLEWARE
 // ---------------------
 app.set("view engine", "ejs");
+
+// ✅ Your views folder is in ROOT, not in /src
 app.set("views", path.join(__dirname, "views"));
 
-// ✅ Static files (CSS, JS, images)
+// ✅ Serve static files (CSS / images / JS)
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ Body parser
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Sessions (stored in SQLite)
+// ✅ Sessions stored in SQLite
 app.use(
     session({
         store: new SQLiteStore({ db: "sessions.sqlite", dir: "./sql" }),
@@ -48,7 +50,7 @@ app.use(
     })
 );
 
-// Expose session to views
+// Pass user + flash messages to all EJS files
 app.use((req, res, next) => {
     res.locals.user = req.session.user;
     res.locals.message = req.session.message;
@@ -59,43 +61,56 @@ app.use((req, res, next) => {
 // ---------------------
 // ROUTES
 // ---------------------
-app.get("/", (req, res) => res.redirect("/login"));
 
-app.get("/login", (req, res) => {
-    res.render("login");
+app.get("/", (req, res) => {
+    res.redirect("/auth/login");
 });
 
-app.post("/login", (req, res) => {
+// ✅ LOGIN PAGE (GET)
+app.get("/auth/login", (req, res) => {
+    res.render("auth/login");
+});
+
+// ✅ LOGIN (POST)
+app.post("/auth/login", (req, res) => {
     const { email, password } = req.body;
 
     db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
         if (err) console.log(err);
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user) {
             req.session.message = "Invalid email or password";
-            return res.redirect("/login");
+            return res.redirect("/auth/login");
+        }
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            req.session.message = "Invalid email or password";
+            return res.redirect("/auth/login");
         }
 
         req.session.user = { id: user.id, email: user.email };
-        res.redirect("/dashboard");
+        res.redirect("/candidate/dashboard"); // change if needed
     });
 });
 
-app.get("/dashboard", (req, res) => {
+// ✅ DASHBOARD (protected)
+app.get("/candidate/dashboard", (req, res) => {
     if (!req.session.user) {
         req.session.message = "Please login first";
-        return res.redirect("/login");
+        return res.redirect("/auth/login");
     }
-    res.render("dashboard");
+    res.render("candidate/dashboard");
 });
 
+// ✅ LOGOUT
 app.get("/logout", (req, res) => {
-    req.session.destroy(() => res.redirect("/login"));
+    req.session.destroy(() => {
+        res.redirect("/auth/login");
+    });
 });
 
 // ---------------------
 // START SERVER
 // ---------------------
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
